@@ -163,4 +163,3 @@ detailsItems.forEach((detailsItem) => {
     })
   }
 })
-//something
