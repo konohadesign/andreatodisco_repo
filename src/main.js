@@ -4,8 +4,6 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/all'
 import { Flip } from 'gsap/Flip'
 
-import { WorksCollection, DetailItem } from './constructors'
-
 gsap.registerPlugin(ScrollTrigger, Flip)
 console.log(
   'GSAP Plugins Registered: ',
@@ -66,45 +64,102 @@ items.forEach((item) => {
   console.log(`Animation applied to item:`, item)
 })
 
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOM fully loaded and parsed')
-  const worksCollection = new WorksCollection()
-  console.log('WorksCollection instance created')
+//init constructors
 
-  let activeDetailItem = null // This will hold the currently active DetailItem instance
+import { WorksItem, DetailsItem } from './constructors'
+//import { DetailsItem } from './constructors'
 
-  document.querySelectorAll('.details-link').forEach((link) => {
-    link.addEventListener('click', function (e) {
-      console.log('Details link clicked', this)
-      e.preventDefault()
-      const detailId = this.getAttribute('href')
-      console.log('Detail ID:', detailId)
-      const detailItemEl = document.querySelector(detailId)
-      if (detailItemEl) {
-        console.log('Detail item element found:', detailItemEl)
-        worksCollection.hide()
-        setTimeout(() => {
-          const detailItem = new DetailItem(detailItemEl, worksCollection)
-          detailItem.show()
-          activeDetailItem = detailItem // Store the active DetailItem reference
-          console.log('DetailItem instance created and shown')
-        }, 500) // Adjust timing as necessary
-      }
+// Initial visibility for works items is set via CSS, so they should be visible by default
+
+// GSAP Timeline for fading out the entire slider
+const sliderFadeOutTimeline = gsap
+  .timeline({ paused: true })
+  .to('.slider_component', { autoAlpha: 0, duration: 0.5 })
+
+function disableScroll() {
+  document.body.style.overflow = 'hidden'
+}
+
+function enableScroll() {
+  document.body.style.overflow = ''
+}
+
+// Prepare work items and keep them visible initially
+const workItems = []
+document.querySelectorAll('.works-cl-item').forEach((itemElement) => {
+  const workItem = new WorksItem(itemElement)
+  workItem.element = itemElement // Store the element for direct access
+  // No need to set display to 'none' or adjust pointer-events since they should be visible
+  workItems.push(workItem)
+})
+
+// Prepare details items but keep them hidden initially
+const detailsItems = []
+document.querySelectorAll('.details-cl-item').forEach((itemElement) => {
+  const detailsItem = new DetailsItem(itemElement)
+  detailsItem.element = itemElement // Store the element for direct access
+  detailsItem.element.style.display = 'none' // Ensure it's hidden
+  detailsItem.element.style.pointerEvents = 'none' // Make it non-interactive initially
+  detailsItems.push(detailsItem)
+})
+
+// Function to handle fading in the appropriate details item
+function fadeInDetailsItem(id) {
+  const detailsItem = detailsItems.find((item) => item.element.id === id)
+  if (!detailsItem) return
+
+  gsap.to(detailsItem.element, {
+    autoAlpha: 1,
+    duration: 0.5,
+    y: 0,
+    onStart: () => {
+      detailsItem.element.style.display = 'block'
+      detailsItem.element.style.pointerEvents = 'auto' // Make it interactive as it starts to fade in
+    },
+  })
+}
+
+// Setup click event for each works item to trigger the transition
+document.querySelectorAll('.details-link').forEach((link) => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault() // Prevent default link behavior
+    disableScroll() // Disable scrolling before starting the transition
+    const targetId = link.getAttribute('href').slice(1) // Assuming the href is something like "#detailsId"
+
+    // Play the fade-out timeline for the slider
+    sliderFadeOutTimeline.play().then(() => {
+      // Once the slider is faded out, fade in the details item with matching ID
+      fadeInDetailsItem(targetId)
     })
   })
+})
 
-  document.querySelectorAll('.details-back').forEach((button) => {
-    button.addEventListener('click', function (e) {
-      console.log('Back button clicked')
-      e.preventDefault()
-      if (activeDetailItem) {
-        console.log('Hiding active detail item')
-        activeDetailItem.hide()
-        setTimeout(() => {
-          worksCollection.show()
-          console.log('Showing works collection')
-        }, 500)
-      }
-    })
+// This function reverses the visibility of the details item and fades the slider back in
+function reverseDetailsAnimationAndShowSlider(currentDetailsId) {
+  const detailsItem = detailsItems.find(
+    (item) => item.element.id === currentDetailsId
+  )
+  if (!detailsItem) return
+
+  gsap.to(detailsItem.element, {
+    autoAlpha: 0,
+    duration: 0.5,
+    onComplete: () => {
+      detailsItem.element.style.display = 'none'
+      detailsItem.element.style.pointerEvents = 'none' // Make it non-interactive after it fades out
+      // Once the details item is hidden, reverse the slider animation to show it again
+      sliderFadeOutTimeline.reverse()
+    },
   })
+}
+
+detailsItems.forEach((detailsItem) => {
+  // Assuming each detailsItem.element has a unique ID and the back button is part of this element
+  const backButton = detailsItem.element.querySelector('.details-back')
+  if (backButton) {
+    backButton.addEventListener('click', () => {
+      enableScroll() // Re-enable scrolling after the details view is visible
+      reverseDetailsAnimationAndShowSlider(detailsItem.element.id)
+    })
+  }
 })
