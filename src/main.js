@@ -11,7 +11,11 @@ console.log(
   gsap.plugins.Flip
 )
 
-const lenis = new Lenis()
+// Initialize Lenis with custom configuration
+const lenis = new Lenis({
+  lerp: 0.02, // Adjust this value to control the smoothness, lower is slower
+  // You can also adjust other configuration options as needed
+})
 console.log('Lenis Initialized')
 
 function raf(time) {
@@ -45,7 +49,7 @@ gsap.to('.works-cl-item', {
     start: 'top top',
     end: 'bottom bottom',
     scrub: true,
-    markers: true,
+    markers: false,
   },
 })
 
@@ -54,7 +58,7 @@ items.forEach((item) => {
     xPercent: 50,
     ease: 'none',
     scrollTrigger: {
-      trigger: item,
+      trigger: '.slider-wrapper',
       start: 'top top',
       end: '+=100%',
       scrub: true,
@@ -68,21 +72,6 @@ items.forEach((item) => {
 
 import { WorksItem, DetailsItem } from './constructors'
 //import { DetailsItem } from './constructors'
-
-// Initial visibility for works items is set via CSS, so they should be visible by default
-
-// GSAP Timeline for fading out the entire slider
-const sliderFadeOutTimeline = gsap
-  .timeline({ paused: true })
-  .to('.slider_component', { autoAlpha: 0, duration: 0.5 })
-
-function disableScroll() {
-  document.body.style.overflow = 'hidden'
-}
-
-function enableScroll() {
-  document.body.style.overflow = ''
-}
 
 // Prepare work items and keep them visible initially
 const workItems = []
@@ -102,6 +91,50 @@ document.querySelectorAll('.details-cl-item').forEach((itemElement) => {
   detailsItem.element.style.pointerEvents = 'none' // Make it non-interactive initially
   detailsItems.push(detailsItem)
 })
+
+// Initial visibility for works items is set via CSS, so they should be visible by default
+
+//functions
+
+function disableScroll() {
+  document.body.style.overflow = 'hidden'
+}
+
+function enableScroll() {
+  document.body.style.overflow = ''
+}
+
+let originalScrollTop = 0 // To save the scroll position
+
+function lockScrollPosition() {
+  originalScrollTop = window.scrollY // Save the current scroll position
+
+  document.documentElement.style.overflow = 'hidden' // Hide scrollbar and disable scroll
+  document.body.scrollIntoView() // Optional, aligns the document back to the top
+
+  // Compensate for the scrollbar's space to prevent layout shift
+  const scrollbarWidth =
+    window.innerWidth - document.documentElement.clientWidth
+  document.body.style.paddingRight = `${scrollbarWidth}px`
+}
+
+function unlockScrollPosition() {
+  document.documentElement.style.overflow = ''
+  document.body.style.paddingRight = '' // Reset padding right
+
+  // Restore the scroll position
+  window.scrollTo(0, originalScrollTop)
+}
+
+//TRANSITION
+
+// GSAP Timeline for fading out the entire slider
+const sliderFadeOutTimeline = gsap
+  .timeline({
+    paused: true,
+    onStart: () => lockScrollPosition(), // Lock scroll position when the timeline starts
+  })
+  .to('.slider_component', { autoAlpha: 0, duration: 0.5 })
 
 // Function to handle fading in the appropriate details item
 function fadeInDetailsItem(id) {
@@ -147,8 +180,14 @@ function reverseDetailsAnimationAndShowSlider(currentDetailsId) {
     onComplete: () => {
       detailsItem.element.style.display = 'none'
       detailsItem.element.style.pointerEvents = 'none' // Make it non-interactive after it fades out
+
       // Once the details item is hidden, reverse the slider animation to show it again
       sliderFadeOutTimeline.reverse()
+
+      // Re-enable scrolling after the reverse animation starts
+      // Consideration: If the reverse animation is long, you might move this call
+      // to an onReverseComplete callback set on the sliderFadeOutTimeline itself, if it doesn't interfere with other logic.
+      unlockScrollPosition()
     },
   })
 }
