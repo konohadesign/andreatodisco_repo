@@ -11,25 +11,30 @@ console.log(
   gsap.plugins.Flip
 )
 
-// Initialize Lenis with custom configuration
+// Initialize Lenis with a base lerp value
 const lenis = new Lenis({
-  lerp: 0.02, // Adjust this value to control the smoothness, lower is slower
-  // You can also adjust other configuration options as needed
+  lerp: 0.2, // Starting point for the lerp value
 })
-console.log('Lenis Initialized')
 
+// Custom function to dynamically adjust lerp based on velocity (conceptual)
+function adjustLerpBasedOnVelocity() {
+  const currentVelocity = Math.abs(lenis.velocity) // Hypothetical way to get current scroll velocity
+
+  if (currentVelocity < 1) {
+    // As the scroll velocity decreases, reduce the lerp value to make the scroll stop more quickly
+    lenis.options.lerp = 0.05 // Example of dynamically adjusting lerp, adjust as necessary
+  } else {
+    // Reset lerp value for normal scrolling speed
+    lenis.options.lerp = 0.1
+  }
+}
+
+// Example of integrating dynamic lerp adjustment into the animation loop (conceptual)
 function raf(time) {
+  adjustLerpBasedOnVelocity() // Adjust lerp based on current velocity
   lenis.raf(time)
   requestAnimationFrame(raf)
 }
-
-lenis.on('scroll', () => {
-  ScrollTrigger.update()
-})
-
-gsap.ticker.add((time) => {
-  lenis.raf(time * 1000)
-})
 
 requestAnimationFrame(raf)
 
