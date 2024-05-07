@@ -102,7 +102,7 @@ document.querySelectorAll('.details-cl-item').forEach((itemElement) => {
 
 // Initial visibility for works items is set via CSS, so they should be visible by default
 
-//functions
+//FUNCTIONS START
 
 function disableScroll() {
   document.body.style.overflow = 'hidden'
@@ -134,7 +134,9 @@ function unlockScrollPosition() {
   window.scrollTo(0, originalScrollTop)
 }
 
-//TRANSITION
+//FUNCTIONS END
+
+//TRANSITION START
 
 // GSAP Timeline for fading out the entire slider
 const sliderFadeOutTimeline = gsap
@@ -210,3 +212,5 @@ detailsItems.forEach((detailsItem) => {
     })
   }
 })
+
+// TRANSITION END
